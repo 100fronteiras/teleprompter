@@ -45,7 +45,7 @@
   #janela {
     position: fixed; left: 50%; transform: translateX(-50%);
     top: calc(var(--topo) + 8px); width: var(--coluna); height: 40vh;
-    overflow: hidden; border-radius: 18px;
+    overflow: hidden; border-radius: 18px; touch-action: none;
     background: rgba(0, 0, 0, var(--opacidade));
     -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 12%, #000 80%, transparent 100%);
             mask-image: linear-gradient(to bottom, transparent 0, #000 12%, #000 80%, transparent 100%);
@@ -95,7 +95,21 @@
   }
   #gravar span { width: 56px; height: 56px; border-radius: 50%; background: var(--vermelho); transition: all .2s; }
   #gravar.on span { width: 30px; height: 30px; border-radius: 6px; }
-  #velocidade { font-variant-numeric: tabular-nums; }
+
+  /* velocidade, logo abaixo do texto */
+  #ritmo {
+    position: fixed; left: 50%; transform: translateX(-50%);
+    top: calc(var(--topo) + 8px + 40vh + 52px);
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(0,0,0,.55); border-radius: 30px; padding: 4px;
+  }
+  #ritmo button {
+    width: 56px; height: 48px; border: 0; border-radius: 24px;
+    background: rgba(255,255,255,.18); font-size: 26px; font-weight: 700; line-height: 1;
+  }
+  #ritmo button:active { background: rgba(255,255,255,.35); }
+  #ritmoValor { min-width: 82px; text-align: center; font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.15; }
+  #ritmoValor small { display: block; font-size: 11px; font-weight: 500; color: #bbb; }
 
   /* contagem */
   #contagem {
@@ -140,11 +154,17 @@
 <div id="pausado">Pausado · toque no texto</div>
 <div id="contagem"></div>
 
+<div id="ritmo">
+  <button id="maisLento" aria-label="Mais lento">−</button>
+  <div id="ritmoValor">160<small>palavras/min</small></div>
+  <button id="maisRapido" aria-label="Mais rápido">+</button>
+</div>
+
 <div id="controles">
   <button class="botao" id="abrirRoteiro">Roteiro</button>
   <button class="botao" id="refazer">Refazer<br>bloco</button>
   <button id="gravar" aria-label="Gravar"><span></span></button>
-  <button class="botao" id="velocidade">1,0×</button>
+  <button class="botao" id="inicio">Início</button>
   <button class="botao" id="abrirAjustes">Ajustes</button>
 </div>
 
@@ -172,7 +192,8 @@
   <label class="ajuste">Largura <input type="range" id="coluna" min="45" max="100" step="1"><output id="colunaV"></output></label>
   <label class="ajuste">Fundo <input type="range" id="opacidade" min="0" max="90" step="5"><output id="opacidadeV"></output></label>
   <h2>Rolagem</h2>
-  <label class="ajuste">Velocidade <input type="range" id="vel" min="0.3" max="3" step="0.1"><output id="velV"></output></label>
+  <p>Velocidade em palavras por minuto. Seu ritmo medido nos vídeos é 160. Os botões − e + embaixo do texto mudam de 10 em 10, inclusive gravando.</p>
+  <label class="ajuste">Velocidade <input type="range" id="ppm" min="60" max="300" step="10"><output id="ppmV"></output></label>
   <label class="ajuste">Rolar ao gravar <input type="checkbox" id="rolarAoGravar" style="justify-self:start;width:24px;height:24px"><span></span></label>
   <h2>Gravação</h2>
   <p id="infoCamera">—</p>
@@ -203,15 +224,16 @@
   const camera = $('camera'), rolo = $('rolo'), janela = $('janela');
 
   // ---------- estado ----------
-  const PADRAO = { fonte: 40, coluna: 78, opacidade: 55, vel: 1.0, rolarAoGravar: true, texto: '' };
+  const PADRAO = { fonte: 40, coluna: 78, opacidade: 55, ppm: 160, rolarAoGravar: true, texto: '' };
   let cfg = { ...PADRAO };
   try { cfg = { ...PADRAO, ...JSON.parse(localStorage.getItem('tp-cfg') || '{}') }; } catch (e) {}
+  delete cfg.vel; // velocidade antiga (1,0×), trocada por palavras/min
   const salvarCfg = () => { try { localStorage.setItem('tp-cfg', JSON.stringify(cfg)); } catch (e) {} };
 
   let stream = null, gravador = null, pedacos = [], inicioGravacao = 0, blobFinal = null;
   let marcas = [], blocoAtual = -1, offset = 0, rolando = false, ultimoQuadro = 0;
   let wakeLock = null, timerRec = null, tituloRoteiro = 'roteiro';
-  const PX_POR_SEGUNDO = 38; // em 1,0×, com fonte 40
+  let pxPorPalavra = 20; // medido no texto montado: altura do texto ÷ número de palavras
 
   // ---------- roteiro ----------
   function extrairTexto(bruto) {
@@ -242,6 +264,16 @@
     });
     const fim = document.createElement('div'); fim.className = 'fim'; rolo.appendChild(fim);
     offset = 0; blocoAtual = -1; aplicarOffset();
+    medirTexto();
+  }
+
+  // a rolagem segue palavras por minuto: mede quantos pixels cada palavra ocupa
+  function medirTexto() {
+    const bs = blocos(); if (!bs.length) return;
+    const ultimo = bs[bs.length - 1];
+    const altura = ultimo.offsetTop + ultimo.offsetHeight - bs[0].offsetTop;
+    const palavras = rolo.textContent.replace(/•/g, ' ').split(/\s+/).filter(Boolean).length;
+    if (altura > 0 && palavras > 0) pxPorPalavra = altura / palavras;
   }
 
   function blocos() { return [...rolo.querySelectorAll('.bloco')]; }
@@ -268,9 +300,9 @@
 
   // ---------- rolagem ----------
   function quadro(t) {
-    if (rolando) {
-      const dt = ultimoQuadro ? (t - ultimoQuadro) / 1000 : 0;
-      offset += dt * PX_POR_SEGUNDO * cfg.vel * (cfg.fonte / 40);
+    if (rolando && !dedoNaTela) {
+      const dt = ultimoQuadro ? Math.min((t - ultimoQuadro) / 1000, 0.1) : 0;
+      offset += dt * (cfg.ppm / 60) * pxPorPalavra;
       aplicarOffset();
     }
     ultimoQuadro = t;
@@ -283,18 +315,41 @@
     $('pausado').style.display = (!v && gravador) ? 'block' : 'none';
   }
 
-  // arrastar o texto com o dedo; toque curto pausa/retoma
-  let toqueY = null, offsetToque = 0, moveu = false;
-  janela.addEventListener('touchstart', e => { toqueY = e.touches[0].clientY; offsetToque = offset; moveu = false; }, { passive: true });
-  janela.addEventListener('touchmove', e => {
-    if (toqueY === null) return;
-    const d = toqueY - e.touches[0].clientY;
-    if (Math.abs(d) > 6) moveu = true;
-    offset = offsetToque + d; aplicarOffset();
-  }, { passive: true });
-  janela.addEventListener('touchend', () => { if (!moveu) setRolando(!rolando); toqueY = null; });
-  janela.addEventListener('click', e => { if (!('ontouchstart' in window)) setRolando(!rolando); });
+  // Dedo no texto: a rolagem automática espera enquanto o dedo estiver na tela
+  // e volta sozinha ao soltar. Arrastar move o texto; toque curto pausa ou retoma.
+  // (Antes, arrastar brigava com a rolagem automática e a página do Safari também
+  // rolava junto: era o "bug" do teste de 2026-11-02.)
+  let dedoNaTela = false, toqueY = 0, offsetToque = 0, moveu = false;
+  function dedoDesce(y) { dedoNaTela = true; toqueY = y; offsetToque = offset; moveu = false; }
+  function dedoMove(y) {
+    if (!dedoNaTela) return;
+    const d = toqueY - y;
+    if (Math.abs(d) > 8) moveu = true;
+    if (moveu) { offset = offsetToque + d; aplicarOffset(); }
+  }
+  function dedoSobe() {
+    if (!dedoNaTela) return;
+    dedoNaTela = false; ultimoQuadro = 0;
+    if (!moveu) setRolando(!rolando);
+  }
+  janela.addEventListener('touchstart', e => { e.preventDefault(); dedoDesce(e.touches[0].clientY); }, { passive: false });
+  janela.addEventListener('touchmove', e => { e.preventDefault(); dedoMove(e.touches[0].clientY); }, { passive: false });
+  janela.addEventListener('touchend', e => { e.preventDefault(); dedoSobe(); }, { passive: false });
+  janela.addEventListener('touchcancel', () => { dedoNaTela = false; ultimoQuadro = 0; });
+  janela.addEventListener('mousedown', e => { if (!('ontouchstart' in window)) dedoDesce(e.clientY); });
+  window.addEventListener('mousemove', e => { if (!('ontouchstart' in window)) dedoMove(e.clientY); });
+  window.addEventListener('mouseup', () => { if (!('ontouchstart' in window)) dedoSobe(); });
   janela.addEventListener('wheel', e => { offset += e.deltaY; aplicarOffset(); }, { passive: true });
+  // nada da página rola fora dos painéis (evita o "pulo" da tela no Safari)
+  document.addEventListener('touchmove', e => { if (!e.target.closest('.painel')) e.preventDefault(); }, { passive: false });
+
+  // velocidade: − e + de 10 em 10 palavras/min, funciona gravando
+  function mudarRitmo(delta) {
+    cfg.ppm = Math.min(300, Math.max(60, cfg.ppm + delta)); salvarCfg(); aplicarCfg();
+  }
+  $('maisLento').onclick = () => mudarRitmo(-10);
+  $('maisRapido').onclick = () => mudarRitmo(10);
+  $('inicio').onclick = () => { setRolando(false); irParaBloco(0); offset = 0; aplicarOffset(); };
 
   // ---------- marcações ----------
   function tempoGravacao() { return gravador ? (performance.now() - inicioGravacao) / 1000 : null; }
@@ -446,31 +501,25 @@
   };
 
   const ajustes = [
-    ['fonte', v => v + ' px'], ['coluna', v => v + '%'], ['opacidade', v => v + '%'], ['vel', v => String(v).replace('.', ',') + '×']
+    ['fonte', v => v + ' px'], ['coluna', v => v + '%'], ['opacidade', v => v + '%'], ['ppm', v => String(v)]
   ];
   function aplicarCfg() {
     const r = document.documentElement.style;
     r.setProperty('--fonte', cfg.fonte + 'px');
     r.setProperty('--coluna', cfg.coluna + '%');
     r.setProperty('--opacidade', cfg.opacidade / 100);
-    $('velocidade').textContent = Number(cfg.vel).toFixed(1).replace('.', ',') + '×';
+    $('ritmoValor').innerHTML = cfg.ppm + '<small>palavras/min</small>';
     ajustes.forEach(([k, f]) => { $(k).value = cfg[k]; $(k + 'V').textContent = f(cfg[k]); });
     $('rolarAoGravar').checked = cfg.rolarAoGravar;
   }
   ajustes.forEach(([k]) => $(k).addEventListener('input', e => {
     cfg[k] = Number(e.target.value); salvarCfg(); aplicarCfg();
-    const atual = blocoAtual; requestAnimationFrame(() => irParaBloco(Math.max(0, atual)));
+    if (k === 'ppm' || k === 'opacidade') return;
+    const atual = blocoAtual; requestAnimationFrame(() => { medirTexto(); irParaBloco(Math.max(0, atual)); });
   }));
   $('rolarAoGravar').onchange = e => { cfg.rolarAoGravar = e.target.checked; salvarCfg(); };
   $('abrirAjustes').onclick = () => abrir('painelAjustes');
   $('fecharAjustes').onclick = () => fechar('painelAjustes');
-
-  // botão de velocidade: toque alterna entre velocidades comuns
-  const VELS = [0.6, 0.8, 1.0, 1.2, 1.5, 1.8];
-  $('velocidade').onclick = () => {
-    const i = VELS.findIndex(v => v > cfg.vel + 0.01);
-    cfg.vel = VELS[i === -1 ? 0 : i]; salvarCfg(); aplicarCfg();
-  };
 
   // ---------- início ----------
   aplicarCfg();
