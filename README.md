@@ -24,4 +24,8 @@ App web (abre no Safari do iPhone e vai para a tela de início). Grava com a câ
 - [ ] Grava 3 min sem travar.
 - [ ] Assistindo, a fala não parece leitura.
 
-Mudou o app? Trocar `VERSAO` em `sw.js`.
+## Publicação
+
+- Endereço: **https://100fronteiras.github.io/teleprompter/** (GitHub Pages, repositório público `100fronteiras/teleprompter`, publicado em 2026-11-02 com autorização do Denys).
+- Esta pasta é o próprio repositório. Mudou o app? Trocar `VERSAO` em `sw.js`, depois `git commit` e `git push`. O site atualiza em cerca de 1 minuto.
+- Só o app fica público. Os roteiros colados ficam guardados no celular, não sobem.
