@@ -15,7 +15,7 @@ App web (abre no Safari do iPhone e vai para a tela de início). Grava com a câ
 
 - Precisa de HTTPS para usar a câmera; por isso o app tem que estar hospedado.
 - iPhone, 2026-11-02 (78 s): vídeo em pé, 1920×1080 com rotação, 30 fps, H.264/AAC. O bug de vídeo deitado (WebKit 323550) não aconteceu.
-- O MP4 do Safari sai com a duração errada no cabeçalho (o ffprobe leu 7 milhões de segundos). Antes de editar: `ffmpeg -i entrada.MP4 -c copy saida.mp4`.
+- O MP4 desse teste saiu com a contagem de tempo quebrada: congelava aos 14 s no Fotos, com o áudio seguindo. Os quadros estavam todos lá. Causa provável: gravação fatiada (`start(1000)`); desde 2026-11-02 o app grava sem fatiar. Vídeo que congelar: `bash ../consertar-video.sh <arquivo>` remonta e gera `-CONSERTADO.mp4`.
 - Qualidade: a que o Safari entregar (o app pede 1080p, 30 fps, 12 Mbps). O app nativo continua como plano C.
 
 ## Teste de aceite no iPhone

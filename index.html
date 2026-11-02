@@ -407,7 +407,9 @@
     gravador = new MediaRecorder(stream, { mimeType: tipo, videoBitsPerSecond: 12_000_000, audioBitsPerSecond: 192_000 });
     gravador.ondataavailable = e => { if (e.data && e.data.size) pedacos.push(e.data); };
     gravador.onstop = terminar;
-    gravador.start(1000);
+    // Sem fatiar a gravação: com start(1000) o Safari gravou o MP4 em pedaços com
+    // relógio quebrado e o vídeo "congelava" aos 14 s no Fotos (teste de 2026-11-02).
+    gravador.start();
     inicioGravacao = performance.now();
     marcar('inicio');
     $('gravar').classList.add('on');
