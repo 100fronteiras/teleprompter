@@ -14,8 +14,8 @@ App web (abre no Safari do iPhone e vai para a tela de início). Grava com a câ
 ## Limites conhecidos (verificado 2026-11-02)
 
 - Precisa de HTTPS para usar a câmera; por isso o app tem que estar hospedado.
-- Testado no navegador do Mac: roteiro, blocos, rolagem e refazer. **Câmera e gravação ainda não foram testadas no iPhone.**
-- Há relato de bug do Safari no iOS 26.6 em que o vídeo da câmera frontal sai deitado (WebKit 323550). O app avisa se acontecer.
+- iPhone, 2026-11-02 (78 s): vídeo em pé, 1920×1080 com rotação, 30 fps, H.264/AAC. O bug de vídeo deitado (WebKit 323550) não aconteceu.
+- O MP4 do Safari sai com a duração errada no cabeçalho (o ffprobe leu 7 milhões de segundos). Antes de editar: `ffmpeg -i entrada.MP4 -c copy saida.mp4`.
 - Qualidade: a que o Safari entregar (o app pede 1080p, 30 fps, 12 Mbps). O app nativo continua como plano C.
 
 ## Teste de aceite no iPhone
