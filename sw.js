@@ -1,5 +1,5 @@
 // Guarda o app para abrir sem internet. Trocar VERSAO a cada mudança no app.
-const VERSAO = 'tp-v3';
+const VERSAO = 'tp-v4';
 const ARQUIVOS = ['./', 'index.html', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {

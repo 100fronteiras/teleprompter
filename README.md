@@ -8,7 +8,7 @@ App web (abre no Safari do iPhone e vai para a tela de início). Grava com a câ
 2. Linha em branco separa blocos. Linha com `•` aparece em amarelo: é tópico para falar solto.
 3. **Botão vermelho:** contagem 3-2-1, grava e começa a rolar. Toque no texto pausa ou retoma; arrastar com o dedo volta ou avança.
 4. **Refazer bloco:** volta ao começo do bloco atual, pausa a rolagem e marca o tempo. A gravação continua.
-5. **− e +** (embaixo do texto): velocidade em palavras por minuto, de 10 em 10, inclusive gravando. Começa em 160, seu ritmo medido. Dedo segurando o texto faz a rolagem esperar; ao soltar, ela continua. **Início** volta ao começo. **Ajustes:** tamanho da letra, largura da coluna, fundo do texto.
+5. **− e +** (embaixo do texto): velocidade de 0,5× a 2,5×, de 0,1 em 0,1, inclusive gravando. 1,0× = 160 palavras por minuto, seu ritmo medido. Dedo segurando o texto faz a rolagem esperar; ao soltar, ela continua. **Início** volta ao começo. **Ajustes:** tamanho da letra, largura da coluna, fundo do texto.
 6. Ao parar: **Salvar vídeo** (vai para Fotos pelo menu de compartilhar) e **Salvar marcações** (`.json` com o segundo em que cada bloco começou e onde houve refazer). Mandar os dois por AirDrop para a edição.
 
 ## Limites conhecidos (verificado 2026-11-02)

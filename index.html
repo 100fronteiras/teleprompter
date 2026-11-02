@@ -156,7 +156,7 @@
 
 <div id="ritmo">
   <button id="maisLento" aria-label="Mais lento">−</button>
-  <div id="ritmoValor">160<small>palavras/min</small></div>
+  <div id="ritmoValor">1,0×<small>160 palavras/min</small></div>
   <button id="maisRapido" aria-label="Mais rápido">+</button>
 </div>
 
@@ -192,8 +192,8 @@
   <label class="ajuste">Largura <input type="range" id="coluna" min="45" max="100" step="1"><output id="colunaV"></output></label>
   <label class="ajuste">Fundo <input type="range" id="opacidade" min="0" max="90" step="5"><output id="opacidadeV"></output></label>
   <h2>Rolagem</h2>
-  <p>Velocidade em palavras por minuto. Seu ritmo medido nos vídeos é 160. Os botões − e + embaixo do texto mudam de 10 em 10, inclusive gravando.</p>
-  <label class="ajuste">Velocidade <input type="range" id="ppm" min="60" max="300" step="10"><output id="ppmV"></output></label>
+  <p>1,0× = 160 palavras por minuto, seu ritmo medido nos vídeos. Vai de 0,5× a 2,5×. Os botões − e + embaixo do texto mudam de 0,1 em 0,1, inclusive gravando.</p>
+  <label class="ajuste">Velocidade <input type="range" id="ppm" min="80" max="400" step="16"><output id="ppmV"></output></label>
   <label class="ajuste">Rolar ao gravar <input type="checkbox" id="rolarAoGravar" style="justify-self:start;width:24px;height:24px"><span></span></label>
   <h2>Gravação</h2>
   <p id="infoCamera">—</p>
@@ -344,11 +344,15 @@
   document.addEventListener('touchmove', e => { if (!e.target.closest('.painel')) e.preventDefault(); }, { passive: false });
 
   // velocidade: − e + de 10 em 10 palavras/min, funciona gravando
-  function mudarRitmo(delta) {
-    cfg.ppm = Math.min(300, Math.max(60, cfg.ppm + delta)); salvarCfg(); aplicarCfg();
+  // 1,0× = 160 palavras/min (ritmo medido do Denys); de 0,5× a 2,5×, passo 0,1×
+  const BASE_PPM = 160, PASSO = 16, MIN_PPM = 80, MAX_PPM = 400;
+  function mudarRitmo(passos) {
+    const atual = Math.round(cfg.ppm / PASSO) * PASSO;
+    cfg.ppm = Math.min(MAX_PPM, Math.max(MIN_PPM, atual + passos * PASSO)); salvarCfg(); aplicarCfg();
   }
-  $('maisLento').onclick = () => mudarRitmo(-10);
-  $('maisRapido').onclick = () => mudarRitmo(10);
+  const vezes = ppm => (ppm / BASE_PPM).toFixed(1).replace('.', ',') + '×';
+  $('maisLento').onclick = () => mudarRitmo(-1);
+  $('maisRapido').onclick = () => mudarRitmo(1);
   $('inicio').onclick = () => { setRolando(false); irParaBloco(0); offset = 0; aplicarOffset(); };
 
   // ---------- marcações ----------
@@ -503,14 +507,14 @@
   };
 
   const ajustes = [
-    ['fonte', v => v + ' px'], ['coluna', v => v + '%'], ['opacidade', v => v + '%'], ['ppm', v => String(v)]
+    ['fonte', v => v + ' px'], ['coluna', v => v + '%'], ['opacidade', v => v + '%'], ['ppm', v => vezes(v)]
   ];
   function aplicarCfg() {
     const r = document.documentElement.style;
     r.setProperty('--fonte', cfg.fonte + 'px');
     r.setProperty('--coluna', cfg.coluna + '%');
     r.setProperty('--opacidade', cfg.opacidade / 100);
-    $('ritmoValor').innerHTML = cfg.ppm + '<small>palavras/min</small>';
+    $('ritmoValor').innerHTML = vezes(cfg.ppm) + '<small>' + cfg.ppm + ' palavras/min</small>';
     ajustes.forEach(([k, f]) => { $(k).value = cfg[k]; $(k + 'V').textContent = f(cfg[k]); });
     $('rolarAoGravar').checked = cfg.rolarAoGravar;
   }
